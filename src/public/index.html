@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TechStore</title>
+<style>
+:root{--blue:#2f5be0;--ink:#1c1f27;--mut:#6b7280;--bg:#f5f6fa;--err:#b42318;--ok:#067647}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);padding:24px}
+.card{background:#fff;width:100%;max-width:440px;padding:36px 32px;border-radius:20px;box-shadow:0 8px 30px rgba(20,30,60,.08)}
+h1{margin:0;text-align:center;color:var(--blue);font-size:2rem}
+.sub{text-align:center;color:var(--mut);margin:6px 0 24px}
+h2{text-align:center;margin:0 0 18px;font-size:1.4rem}
+label{display:block;font-size:.9rem;font-weight:600;margin:12px 0 4px}
+input{width:100%;padding:12px;border:1px solid #d0d5dd;border-radius:10px;font-size:1rem}
+input:focus,button:focus-visible,a:focus-visible{outline:3px solid #a9bcf5;outline-offset:1px}
+.btn{display:block;width:100%;padding:13px;margin-top:16px;border:0;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;color:#fff}
+.primary{background:var(--blue)}.google{background:#5282ec}.github{background:#23262f}
+.ghost{background:none;color:var(--blue);margin-top:8px}
+.or{text-align:center;color:var(--mut);margin:18px 0 0;font-size:.85rem}
+#msg{min-height:1.4em;margin:14px 0 0;text-align:center;font-size:.92rem}
+.err{color:var(--err)}.ok{color:var(--ok)}
+.hint{font-size:.8rem;color:var(--mut);margin-top:4px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0}
+dt{color:var(--mut)}dd{margin:0;font-weight:600;word-break:break-all}
+.code{letter-spacing:.5em;text-align:center;font-size:1.6rem}
+#qr{display:block;margin:12px auto;width:200px;height:200px}
+.foot{text-align:center;color:var(--mut);font-size:.8rem;margin:22px 0 0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>🛒 TechStore</h1>
+  <p class="sub">Sistema de Gestión de Inventario</p>
+
+  <!-- LOGIN -->
+  <section id="v-login">
+    <h2>Iniciar sesión</h2>
+    <form id="f-login">
+      <label for="l-email">Correo</label>
+      <input id="l-email" type="email" required autocomplete="username">
+      <label for="l-pass">Contraseña</label>
+      <input id="l-pass" type="password" required autocomplete="current-password">
+      <button class="btn primary" type="submit">Iniciar sesión</button>
+    </form>
+    <p class="or">o continúa con</p>
+    <a class="btn google" href="/api/auth/google">Continuar con Google</a>
+    <a class="btn github" href="/api/auth/github">Continuar con GitHub</a>
+    <button class="btn ghost" type="button" data-go="register">Crear una cuenta</button>
+  </section>
+
+  <!-- REGISTRO -->
+  <section id="v-register" hidden>
+    <h2>Crear cuenta</h2>
+    <form id="f-reg">
+      <label for="r-name">Nombre completo</label>
+      <input id="r-name" required autocomplete="name">
+      <label for="r-email">Correo</label>
+      <input id="r-email" type="email" required autocomplete="email">
+      <label for="r-pass">Contraseña</label>
+      <input id="r-pass" type="password" required autocomplete="new-password">
+      <p class="hint">Mínimo 8 caracteres, una mayúscula, un número y un carácter especial.</p>
+      <label for="r-store">Tienda asignada</label>
+      <input id="r-store" list="stores" required>
+      <datalist id="stores"><option value="Tienda Lima Centro"><option value="Tienda Miraflores"><option value="Tienda San Isidro"></datalist>
+      <button class="btn primary" type="submit">Crear cuenta</button>
+    </form>
+    <button class="btn ghost" type="button" data-go="login">Ya tengo cuenta</button>
+  </section>
+
+  <!-- MFA -->
+  <section id="v-mfa" hidden>
+    <h2>Verificación en dos pasos</h2>
+    <p class="sub">Escribe el código de 6 dígitos de tu app autenticadora.</p>
+    <form id="f-mfa">
+      <input id="m-code" class="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code" aria-label="Código de 6 dígitos">
+      <button class="btn primary" type="submit">Verificar código</button>
+    </form>
+    <button class="btn ghost" type="button" data-go="login">Volver al inicio de sesión</button>
+  </section>
+
+  <!-- PERFIL -->
+  <section id="v-dash" hidden>
+    <h2>Mi perfil</h2>
+    <dl>
+      <dt>Nombre</dt><dd id="d-name"></dd>
+      <dt>Correo</dt><dd id="d-email"></dd>
+      <dt>Tienda</dt><dd id="d-store"></dd>
+      <dt>Rol</dt><dd id="d-role"></dd>
+      <dt>MFA</dt><dd id="d-mfa"></dd>
+    </dl>
+    <div id="mfa-box">
+      <button class="btn primary" id="b-setup" type="button">Activar verificación en dos pasos</button>
+      <div id="setup" hidden>
+        <p class="sub">Escanea el QR con Google Authenticator y escribe el código que aparece.</p>
+        <img id="qr" alt="Código QR para la app autenticadora">
+        <form id="f-enable">
+          <input id="e-code" class="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required aria-label="Código de 6 dígitos">
+          <button class="btn primary" type="submit">Confirmar y activar</button>
+        </form>
+      </div>
+    </div>
+    <button class="btn ghost" id="b-out" type="button">Cerrar sesión</button>
+  </section>
+
+  <p id="msg" role="alert"></p>
+  <p class="foot">Sistema protegido con JWT, MFA y OAuth 2.0</p>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const views = ['login', 'register', 'mfa', 'dash'];
+let mfaToken = null;
+const tok = () => sessionStorage.getItem('token');
+
+function say(text, ok) { const m = $('msg'); m.textContent = text; m.className = ok ? 'ok' : 'err'; }
+function show(v) { views.forEach(x => $('v-' + x).hidden = x !== v); say(''); }
+
+async function api(path, body, token) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch('/api/auth' + path, {
+    method: body ? 'POST' : 'GET',
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  let d = {};
+  try { d = await r.json(); } catch (e) {}
+  return { status: r.status, d };
+}
+
+async function dash() {
+  const { d } = await api('/me', null, tok());
+  if (!d.ok) { sessionStorage.removeItem('token'); show('login'); say(d.mensaje || 'Tu sesión expiró. Inicia sesión de nuevo.'); return; }
+  const u = d.usuario;
+  $('d-name').textContent = u.fullName;
+  $('d-email').textContent = u.email;
+  $('d-store').textContent = u.store;
+  $('d-role').textContent = u.role;
+  $('d-mfa').textContent = u.mfaEnabled ? 'Activado' : 'Desactivado';
+  $('mfa-box').hidden = u.mfaEnabled;
+  $('setup').hidden = true;
+  $('b-setup').hidden = false;
+  show('dash');
+}
+
+document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => show(b.dataset.go));
+
+$('f-login').onsubmit = async e => {
+  e.preventDefault();
+  const { d } = await api('/login', { email: $('l-email').value, password: $('l-pass').value });
+  if (d.mfaRequired) { mfaToken = d.mfaToken; $('l-pass').value = ''; show('mfa'); return; }
+  if (d.token) { sessionStorage.setItem('token', d.token); $('l-pass').value = ''; return dash(); }
+  say((d.mensaje || 'No se pudo iniciar sesión') + (d.intentosRestantes !== undefined ? ` Intentos restantes: ${d.intentosRestantes}.` : ''));
+};
+
+$('f-reg').onsubmit = async e => {
+  e.preventDefault();
+  const { d } = await api('/register', {
+    fullName: $('r-name').value, email: $('r-email').value,
+    password: $('r-pass').value, store: $('r-store').value
+  });
+  if (d.ok) { $('f-reg').reset(); show('login'); say('Cuenta creada. Ya puedes iniciar sesión.', true); return; }
+  say([d.mensaje].concat(d.errores || []).join('. '));
+};
+
+$('f-mfa').onsubmit = async e => {
+  e.preventDefault();
+  const { d } = await api('/mfa/verify', { mfaToken, code: $('m-code').value });
+  $('m-code').value = '';
+  if (d.token) { sessionStorage.setItem('token', d.token); return dash(); }
+  if (d.intentosRestantes === undefined) { show('login'); say(d.mensaje || 'Inicia sesión de nuevo.'); return; }
+  say(`${d.mensaje}. Intentos restantes: ${d.intentosRestantes}.`);
+};
+
+$('b-setup').onclick = async () => {
+  const { d } = await api('/mfa/setup', {}, tok());
+  if (!d.ok) { say(d.mensaje); return; }
+  $('qr').src = d.qrCode;
+  $('setup').hidden = false;
+  $('b-setup').hidden = true;
+  say('');
+};
+
+$('f-enable').onsubmit = async e => {
+  e.preventDefault();
+  const { d } = await api('/mfa/enable', { code: $('e-code').value }, tok());
+  $('e-code').value = '';
+  if (d.ok) { await dash(); say('Verificación en dos pasos activada.', true); } else say(d.mensaje);
+};
+
+$('b-out').onclick = () => { sessionStorage.removeItem('token'); show('login'); say('Cerraste sesión.', true); };
+
+// Al volver de Google/GitHub el servidor redirige con #token=... o #mfaToken=...
+(function start() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null, '', location.pathname);
+  if (h.get('token')) { sessionStorage.setItem('token', h.get('token')); return dash(); }
+  if (h.get('mfaToken')) { mfaToken = h.get('mfaToken'); return show('mfa'); }
+  if (tok()) return dash();
+  show('login');
+})();
+</script>
+</body>
+</html>
