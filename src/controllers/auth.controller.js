@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { users, nextId } = require('../data/store');
@@ -14,6 +15,7 @@ function toPublicUser(user) {
     fullName: user.fullName,
     store: user.store,
     role: user.role,
+    mfaEnabled: user.mfaEnabled,
     createdAt: user.createdAt,
   };
 }
@@ -23,6 +25,15 @@ function generateToken(user) {
     { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: '1h' }
+  );
+}
+
+// Token temporal que solo sirve para completar el paso MFA
+function generateMfaToken(user, sid) {
+  return jwt.sign(
+    { id: user.id, purpose: 'mfa', sid },
+    process.env.JWT_SECRET,
+    { expiresIn: '5m' }
   );
 }
 
@@ -69,6 +80,9 @@ async function register(req, res) {
       lockUntil: null,
       mfaEnabled: false,
       mfaSecret: null,
+      mfaTempSecret: null,
+      mfaSession: null,
+      mfaFailedAttempts: 0,
       createdAt: new Date().toISOString(),
     };
 
@@ -140,16 +154,29 @@ async function login(req, res) {
       });
     }
 
-    // 4. Login correcto: reiniciamos contador y generamos token
+    // 4. Contraseña correcta: reiniciamos contador
     user.failedAttempts = 0;
     user.lockUntil = null;
 
-    const token = generateToken(user);
+    // 5. Si tiene MFA activado, NO entregamos el token final todavía
+    if (user.mfaEnabled) {
+      const sid = crypto.randomUUID();
+      user.mfaSession = sid;
+      user.mfaFailedAttempts = 0;
 
+      return res.status(200).json({
+        ok: true,
+        mfaRequired: true,
+        mensaje: 'Credenciales correctas. Ingresa el código de tu app autenticadora en /api/auth/mfa/verify',
+        mfaToken: generateMfaToken(user, sid),
+      });
+    }
+
+    // 6. Sin MFA: token completo
     return res.status(200).json({
       ok: true,
       mensaje: 'Inicio de sesión exitoso',
-      token,
+      token: generateToken(user),
       usuario: toPublicUser(user),
     });
   } catch (error) {
