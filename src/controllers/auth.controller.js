@@ -111,9 +111,12 @@ async function login(req, res) {
     const normalizedEmail = String(email).trim().toLowerCase();
     const user = users.find((u) => u.email === normalizedEmail);
 
-    // Mensaje genérico: no revelamos si el email existe o no
-    if (!user) {
-      return res.status(401).json({ ok: false, mensaje: 'Credenciales inválidas' });
+        // Cuentas creadas con Google/GitHub no tienen contraseña
+    if (!user.passwordHash) {
+      return res.status(401).json({
+        ok: false,
+        mensaje: 'Esta cuenta usa inicio de sesión social (Google/GitHub)',
+      });
     }
 
     // 1. ¿La cuenta está bloqueada?
@@ -196,4 +199,4 @@ function me(req, res) {
   return res.json({ ok: true, usuario: toPublicUser(user) });
 }
 
-module.exports = { register, login, me, toPublicUser, generateToken };
+module.exports = { register, login, me, toPublicUser, generateToken, generateMfaToken };
